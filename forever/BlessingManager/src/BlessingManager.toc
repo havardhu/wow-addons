@@ -2,7 +2,7 @@
 ## Title: Blessing Manager
 ## Notes: Plan, sync and track paladin blessings for WoW: Forever.
 ## Author: havard
-## Version: 0.2.0
+## Version: 0.3.0
 ## SavedVariables: BlessingManagerDB
 ## IconTexture: Interface\Icons\Spell_Magic_GreaterBlessingofKings
 

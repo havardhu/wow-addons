@@ -15,6 +15,11 @@ of `BlessingManager.toc`.
   class's tanks, healers or DPS. Overrides beat the class default. Example: Shaman default
   Kings, Shaman Healer -> Wisdom. Cells with overrides show small T / H / D letters.
   Roles come from the party/raid role each player has set; players with no role get the default.
+- **Personal overrides** (party only, when you're a paladin): under the grid, every party member
+  is listed with the blessing you'll give them. Click to cycle, Shift-click to go back to the
+  class setting, right-click to pick from a list. A personal override beats your class default
+  and role overrides, but only for your own casting: it's never sent to the group, and the
+  shared grid and **Post** still show the class plan. Gold background = personal override.
 - **Auto-assign** fills every row you're allowed to edit, using the priority table at the top of `Core.lua`.
 - **Sync** pushes your rows and asks everyone else for theirs. **Post** writes the plan to raid/party chat.
 - Cell borders: green = everyone buffed, orange = expiring soon, red = someone missing (or two paladins on the same blessing), grey = nobody of that class here.
