@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: Green Hills Pages
+## Notes: Which Green Hills of Stranglethorn pages you still need, which you hold in bags and bank, and which you've already sent to your main.
+## Author: havard
+## Version: 0.1.0
+## SavedVariables: GreenHillsDB
+## SavedVariablesPerCharacter: GreenHillsCharDB
+## IconTexture: Interface\Icons\INV_Misc_Note_02
+
+GreenHills.lua
