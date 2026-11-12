@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: Taming Info
+## Notes: Everything about the beast you're targeting: tameable?, family, abilities and ranks, attack speed, diet, rares. Works on any class.
+## Author: havard
+## Version: 0.2.0
+## SavedVariables: TamingInfoDB
+## IconTexture: Interface\Icons\Ability_Hunter_BeastTaming
+
+Data.lua
+TamingInfo.lua
+Journal.lua

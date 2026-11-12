@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: Ask AI
+## Notes: Builds a ready-to-paste AI prompt from the quest you're looking at. Templates are editable.
+## Author: havard
+## Version: 0.1.0
+## SavedVariables: AskAIDB
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+
+Data.lua
+UI.lua

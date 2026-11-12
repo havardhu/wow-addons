@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: Forsaken Light
+## Notes: An Undead-paladin skin for the player, target, focus, pet, target-of-target and totem frames and the minimap header.
+## Author: havard
+## Version: 0.1.0
+## SavedVariables: ForsakenLightDB
+## IconTexture: Interface\Icons\Spell_Holy_HolyBolt
+
+ForsakenLight.lua

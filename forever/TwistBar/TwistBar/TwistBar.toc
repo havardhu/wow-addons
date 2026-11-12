@@ -1,0 +1,9 @@
+## Interface: 16001
+## Title: Twist Bar
+## Notes: Seal, Echo, swing timer and Judgement on one line for Retribution paladins (WoW: Forever).
+## Author: havard
+## Version: 0.1.0
+## SavedVariables: TwistBarDB
+## IconTexture: Interface\Icons\Ability_ThunderBolt
+
+TwistBar.lua

@@ -1,0 +1,8 @@
+<Bindings>
+  <Binding name="ASKAI_OPEN" header="ASKAI" category="ADDONS">
+    AskAI:Open()
+  </Binding>
+  <Binding name="ASKAI_EDIT" category="ADDONS">
+    AskAI:OpenEditor()
+  </Binding>
+</Bindings>

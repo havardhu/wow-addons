@@ -1,0 +1,10 @@
+## Interface: 16001
+## Title: Session Stats
+## Notes: Start a session and track XP, gold, kills, quests, loot, dungeon runs and zones.
+## Author: havard
+## Version: 0.1.0
+## SavedVariablesPerCharacter: SessionStatsCharDB
+## IconTexture: Interface\Icons\INV_Misc_PocketWatch_01
+
+Core.lua
+UI.lua

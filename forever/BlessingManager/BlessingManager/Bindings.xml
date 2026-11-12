@@ -1,0 +1,6 @@
+<Bindings>
+  <Binding name="BLESSINGMANAGER_TOGGLE" header="BLESSINGMANAGER" category="ADDONS">
+    BlessingManager.UI:Toggle()
+  </Binding>
+  <Binding name="CLICK BlessingManagerCastButton:LeftButton" category="ADDONS"/>
+</Bindings>
