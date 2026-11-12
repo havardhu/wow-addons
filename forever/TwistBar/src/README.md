@@ -7,7 +7,8 @@ Seal, Echo, swing timer and Judgement on one line for Retribution paladins.
 
 ## What you see
 - **Seal**: your active seal, coloured border, with its remaining duration as a swipe.
-  Red border + "no seal" when you have none. The swing bar takes your seal's colour.
+  Red border + "no seal" when you have none.
+  The number in the bottom-right corner is the seal's stack count (Echo stacks), when it has any. The swing bar takes your seal's colour.
 - **Echo** (only if you have Twist of Light): lights up green with the replaced seal's icon
   while an Echo is waiting for your next melee attack. Grey = nothing pending.
 - **Swing bar**: driven by Forever's own swing event. Weapon speed on the left, time left

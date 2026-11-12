@@ -108,6 +108,11 @@ end
 local seal = MakeIcon(f)
 seal:SetPoint("LEFT", PADX, 0)
 seal.cd:SetReverse(true)
+-- Stack count of the active seal (Echo stacks), bottom-right like an action button.
+-- Parented to the cooldown so it draws above the swipe.
+seal.count = seal.cd:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+seal.count:SetPoint("BOTTOMRIGHT", seal, "BOTTOMRIGHT", -1, 2)
+seal.count:SetJustifyH("RIGHT")
 
 local echo = MakeIcon(f)
 echo:SetPoint("LEFT", seal, "RIGHT", PADX, 0)
@@ -200,6 +205,7 @@ function T:ScanAuras()
     end
     self.seal, self.echo = foundSeal, foundEcho
     self.sealAuraInstance = sealAura and sealAura.auraInstanceID
+    self.sealStacks = sealAura and sealAura.applications
     return true
 end
 
@@ -219,7 +225,7 @@ function T:CheckLearned()
         local a = HasAura(id)
         if a == nil then return false end
         any = true
-        if a then foundSeal, inst = s, a.auraInstanceID end
+        if a then foundSeal, inst, self.sealStacks = s, a.auraInstanceID, a.applications end
     end
     for e, id in pairs(learned.echoes) do
         local a = HasAura(id)
@@ -228,6 +234,7 @@ function T:CheckLearned()
     if not any then return false end
     self.seal = foundSeal
     self.sealAuraInstance = inst
+    if not foundSeal then self.sealStacks = nil end
     -- Only trust echo absence if we know at least one echo ID.
     if next(learned.echoes) then self.echo = foundEcho end
     return true
@@ -260,6 +267,20 @@ local function SetCooldownSafe(cd, spell, ignoreGCD)
     end
 end
 
+-- Stack text for the seal. Uses the game's display helper when it exists, because the
+-- count can be a secret value in combat; otherwise shows the plain count when readable.
+function T:SealStackText()
+    local inst = self.sealAuraInstance
+    if inst and C_UnitAuras.GetAuraApplicationDisplayCount then
+        local ok, text = pcall(C_UnitAuras.GetAuraApplicationDisplayCount, "player", inst, 1, 99)
+        if ok and text ~= nil then return text end
+    end
+    local n = self.sealStacks
+    if n == nil then return "" end
+    if issecret(n) then return n end      -- FontStrings may display secret values as-is
+    return n > 0 and tostring(n) or ""
+end
+
 function T:UpdateSeal()
     local s = self.seal
     if s then
@@ -269,6 +290,8 @@ function T:UpdateSeal()
         seal:SetBackdropBorderColor(c[1], c[2], c[3], 1)
         bar:SetStatusBarColor(c[1], c[2], c[3])
         seal.label:SetText(s)
+        local ok = pcall(seal.count.SetText, seal.count, self:SealStackText())
+        if not ok then seal.count:SetText("") end
         -- Seal duration swipe (duration objects are fine with secret values).
         local inst = self.sealAuraInstance
         if inst and C_UnitAuras.GetAuraDuration and seal.cd.SetCooldownFromDurationObject then
@@ -283,6 +306,7 @@ function T:UpdateSeal()
         seal:SetBackdropBorderColor(0.9, 0.2, 0.2, 1)
         bar:SetStatusBarColor(NO_SEAL_COLOR[1], NO_SEAL_COLOR[2], NO_SEAL_COLOR[3])
         seal.label:SetText("|cffff6060no seal|r")
+        seal.count:SetText("")
         seal.cd:Clear()
     end
 
@@ -443,7 +467,7 @@ function T:UNIT_SPELLCAST_SUCCEEDED(unit, _, spellID)
             self.echo = old            -- predicted; the aura check below corrects it
         end
         self.seal = s
-        self.sealAuraInstance = nil
+        self.sealAuraInstance, self.sealStacks = nil, nil
         C_Timer.After(0.1, function() T:RefreshAuras() end)
         self:UpdateSeal()
     end
