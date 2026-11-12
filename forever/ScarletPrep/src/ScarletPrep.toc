@@ -1,0 +1,11 @@
+## Interface: 16001
+## Title: Scarlet Prep
+## Notes: Horde checklist for Scarlet Monastery: which quests to pick up, full quest chains, and your progress read from the quest log.
+## Author: havard
+## Version: 0.1.0
+## SavedVariablesPerCharacter: ScarletPrepCharDB
+## IconTexture: Interface\Icons\INV_Misc_Book_07
+
+Data.lua
+Core.lua
+UI.lua
