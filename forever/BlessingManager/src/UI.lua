@@ -7,6 +7,7 @@ local CELL, GAP, NAME_W, PAD = 30, 2, 130, 10
 local TOP = 34          -- title area
 local HEADER_H = 28     -- class icon row
 local FOOTER_H = 62     -- status line + buttons
+local SECTION_H = 22    -- "Your blessings in this party" header
 
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 
@@ -229,6 +230,196 @@ function ns.CreateUI(BM)
     UI.empty:SetText("No paladins in your group.")
 
     -----------------------------------------------------------------------
+    -- Party members: personal overrides (yours only, never synced)
+    -----------------------------------------------------------------------
+    local function PersonalText(v)
+        if v == nil then return "Use class default" end
+        if v == BM.SKIP then return "No blessing" end
+        return BM.BLESSINGS[v].spell
+    end
+
+    local function CyclePersonal(name)
+        local list = { false }
+        for _, k in ipairs(BM.ORDER) do
+            if BM:Knows(BM.me, k) then list[#list + 1] = k end
+        end
+        list[#list + 1] = BM.SKIP
+        local cur = BM:GetPersonal(name) or false
+        local idx = 1
+        for i, k in ipairs(list) do if k == cur then idx = i end end
+        idx = idx % #list + 1
+        BM:SetPersonal(name, list[idx] or nil)
+    end
+
+    local function OpenPersonalMenu(btn)
+        local name = btn.member
+        if not (MenuUtil and MenuUtil.CreateContextMenu) then
+            BM:Print("Menu unavailable on this client. Click to cycle instead.")
+            return
+        end
+        MenuUtil.CreateContextMenu(btn, function(_, root)
+            root:CreateTitle(("Your blessing on %s"):format(BM:Short(name)))
+            local function add(value)
+                root:CreateRadio(PersonalText(value),
+                    function() return BM:GetPersonal(name) == value end,
+                    function() BM:SetPersonal(name, value); BM:Evaluate(); UI:Refresh() end)
+            end
+            add(nil)
+            add(BM.SKIP)
+            for _, k in ipairs(BM.ORDER) do
+                if BM:Knows(BM.me, k) then add(k) end
+            end
+        end)
+    end
+
+    local function MemberClick(self, button)
+        if InCombatLockdown() then return end
+        if button == "RightButton" then
+            GameTooltip:Hide()
+            OpenPersonalMenu(self)
+            return
+        end
+        if IsShiftKeyDown() then
+            BM:SetPersonal(self.member, nil)
+        else
+            CyclePersonal(self.member)
+        end
+        BM:Evaluate()
+        UI:Refresh()
+        if GameTooltip:IsOwned(self) then self:GetScript("OnEnter")(self) end
+    end
+
+    local function MemberEnter(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:AddLine(("Your blessing on %s"):format(BM:Short(self.member)))
+        local p = BM:GetPersonal(self.member)
+        local st = BM.members and BM.members[self.member]
+        local classKey = BM:Effective(BM.me, self.class, self.role)
+        GameTooltip:AddDoubleLine("Class setting", classKey and BM.BLESSINGS[classKey].spell or "none", 0.8, 0.8, 0.8, 1, 1, 1)
+        GameTooltip:AddDoubleLine("Personal", p and PersonalText(p) or "|cff9d9d9dnot set|r", 0.8, 0.8, 0.8, 1, 0.82, 0)
+        if st and st.key then
+            if st.left then
+                GameTooltip:AddLine(st.left == math.huge and "Buffed" or ("Buffed, %d min left"):format(math.floor(st.left / 60)), 0.3, 0.9, 0.3)
+            else
+                GameTooltip:AddLine("Missing", 1, 0.45, 0.45)
+            end
+        end
+        GameTooltip:AddLine(" ")
+        GameTooltip:AddLine("Only affects your own casting. Not shared with the group.", 0.7, 0.7, 0.7, true)
+        GameTooltip:AddLine("Click: cycle    Shift-click: use class default", 0.5, 0.8, 1)
+        GameTooltip:AddLine("Right-click: pick from a list", 0.5, 0.8, 1)
+        GameTooltip:Show()
+    end
+
+    UI.section = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    UI.section:SetText("Your blessings in this party |cff9d9d9d(personal, not shared)|r")
+    UI.section:SetJustifyH("LEFT")
+
+    UI.members = {}
+    local function GetMember(i)
+        if UI.members[i] then return UI.members[i] end
+        local row = CreateFrame("Frame", nil, f)
+        row:SetSize(width - PAD * 2, CELL)
+        row.name = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        row.name:SetPoint("LEFT", 2, 0)
+        row.name:SetWidth(NAME_W - 6)
+        row.name:SetJustifyH("LEFT")
+        row.name:SetWordWrap(false)
+
+        local b = CreateFrame("Button", nil, row, "BackdropTemplate")
+        b:SetSize(CELL, CELL)
+        b:SetPoint("LEFT", row, "LEFT", NAME_W, 0)
+        b:SetBackdrop({ bgFile = WHITE, edgeFile = WHITE, edgeSize = 2 })
+        b:SetBackdropColor(0, 0, 0, 0.55)
+        b.icon = b:CreateTexture(nil, "ARTWORK")
+        b.icon:SetPoint("TOPLEFT", 2, -2)
+        b.icon:SetPoint("BOTTOMRIGHT", -2, 2)
+        b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        b.text:SetPoint("CENTER")
+        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        b:SetScript("OnClick", MemberClick)
+        b:SetScript("OnEnter", MemberEnter)
+        b:SetScript("OnLeave", GameTooltip_Hide)
+        row.button = b
+
+        row.desc = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.desc:SetPoint("LEFT", b, "RIGHT", 8, 0)
+        row.desc:SetPoint("RIGHT", row, "RIGHT", -2, 0)
+        row.desc:SetJustifyH("LEFT")
+        row.desc:SetWordWrap(false)
+        UI.members[i] = row
+        return row
+    end
+
+    -- Returns the height used.
+    local function LayoutMembers(y)
+        local show = BM.isPaladin and IsInGroup() and not IsInRaid()
+        UI.section:SetShown(show)
+        if not show then
+            for _, row in ipairs(UI.members) do row:Hide() end
+            return 0
+        end
+        UI.section:ClearAllPoints()
+        UI.section:SetPoint("TOPLEFT", f, "TOPLEFT", PAD + 2, -(y + 6))
+        local list = {}
+        for _, m in ipairs(BM.roster) do list[#list + 1] = m end
+        for i, m in ipairs(list) do
+            local row = GetMember(i)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", f, "TOPLEFT", PAD, -(y + SECTION_H + (i - 1) * (CELL + GAP)))
+            row:Show()
+            local c = RAID_CLASS_COLORS and RAID_CLASS_COLORS[m.class]
+            row.name:SetText(BM:Short(m.name) .. (m.name == BM.me and " |cff9d9d9d(you)|r" or ""))
+            if c then row.name:SetTextColor(c.r, c.g, c.b) else row.name:SetTextColor(1, 1, 1) end
+
+            local b = row.button
+            b.member, b.class, b.role = m.name, m.class, BM:UnitRole(m.unit)
+            local p = BM:GetPersonal(m.name)
+            local key
+            if p == BM.SKIP then key = nil elseif p then key = p else key = BM:Effective(BM.me, m.class, b.role) end
+
+            local bl = key and BM.BLESSINGS[key]
+            local tex = bl and C_Spell.GetSpellTexture(bl.spell)
+            if tex then
+                b.icon:SetTexture(tex); b.icon:Show(); b.text:SetText("")
+            else
+                b.icon:Hide()
+                b.text:SetText(bl and bl.letter or "|cff9d9d9d-|r")
+            end
+
+            local st = BM.members and BM.members[m.name]
+            local r, g, bb = 0.3, 0.3, 0.3
+            if key and st and st.key == key then
+                if not st.left then r, g, bb = 0.9, 0.2, 0.2
+                elseif st.left < BM.db.threshold then r, g, bb = 1, 0.6, 0
+                else r, g, bb = 0.2, 0.85, 0.3 end
+            end
+            if p then
+                -- Gold inner hint for personal overrides: tint the background.
+                b:SetBackdropColor(0.35, 0.28, 0, 0.7)
+            else
+                b:SetBackdropColor(0, 0, 0, 0.55)
+            end
+            b:SetBackdropBorderColor(r, g, bb, 1)
+
+            local desc
+            if p == BM.SKIP then
+                desc = "|cffff8080No blessing|r  |cffffd100personal|r"
+            elseif p then
+                desc = bl.spell .. "  |cffffd100personal|r"
+            elseif key then
+                desc = bl.spell .. "  |cff9d9d9d" .. BM:ClassName(m.class) .. " setting|r"
+            else
+                desc = "|cff9d9d9dNothing assigned for " .. BM:ClassName(m.class) .. "|r"
+            end
+            row.desc:SetText(desc)
+        end
+        for i = #list + 1, #UI.members do UI.members[i]:Hide() end
+        return SECTION_H + #list * (CELL + GAP) + 6
+    end
+
+    -----------------------------------------------------------------------
     -- Footer
     -----------------------------------------------------------------------
     UI.status = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -328,7 +519,9 @@ function ns.CreateUI(BM)
         UI.empty:SetShown(#pals == 0)
 
         local n = math.max(#pals, 1)
-        f:SetHeight(TOP + HEADER_H + n * (CELL + GAP) + FOOTER_H)
+        local gridBottom = TOP + HEADER_H + n * (CELL + GAP)
+        local extra = LayoutMembers(gridBottom)
+        f:SetHeight(gridBottom + extra + FOOTER_H)
 
         if InCombatLockdown() then
             UI.status:SetText("|cffff6060In combat - tracking paused|r")
@@ -413,7 +606,8 @@ function ns.CreateUI(BM)
             cb.icon:SetDesaturated(true)
             local assigned = false
             for _, m in ipairs(BM.roster) do
-                if BM:Get(BM.me, m.class) then assigned = true break end
+                local p = BM:GetPersonal(m.name)
+                if (p and p ~= BM.SKIP) or BM:Get(BM.me, m.class) then assigned = true break end
             end
             if BM.mine and #BM.mine > 0 then
                 cb.label:SetText("|cffff8080out of range|r")

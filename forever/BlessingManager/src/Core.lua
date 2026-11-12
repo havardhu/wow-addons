@@ -57,6 +57,7 @@ BM.PRIORITY = {
 local DEFAULTS = {
     assignments = {},   -- [paladinFullName] = { rev = n, [CLASS] = BLESSINGKEY }
     known = {},         -- [paladinFullName] = { [BLESSINGKEY] = true }
+    personal = {},      -- [memberFullName] = BLESSINGKEY or "SKIP"; your own casting only, never synced
     threshold = 300,    -- seconds left before a blessing counts as "needs rebuff"
     alerts = true,
     sound = true,
@@ -247,6 +248,26 @@ function BM:Effective(pal, class, role)
     local o = role and self:GetRole(pal, class, role)
     if o == self.SKIP then return nil end
     return o or self:Get(pal, class)
+end
+
+-- Personal overrides: what *you* give one specific player. Beats your class default and
+-- role overrides. Stored only in your SavedVariables and never sent to the group.
+function BM:GetPersonal(name)
+    return name and self.db.personal[name]
+end
+
+function BM:SetPersonal(name, value)
+    if not name then return end
+    self.db.personal[name] = value
+    self:RequestRefresh()
+end
+
+-- The blessing you give member m (roster entry). Returns key (or nil), and "personal"/"class".
+function BM:MyBlessingFor(m, role)
+    local p = self.db.personal[m.name]
+    if p == self.SKIP then return nil, "personal" end
+    if p then return p, "personal" end
+    return self:Effective(self.me, m.class, role), "class"
 end
 
 function BM:UnitRole(unit)
@@ -530,14 +551,24 @@ function BM:Evaluate()
     if InCombatLockdown() then return end
     local threshold = self.db.threshold
     local cells, mine, missingTotal = {}, {}, 0
+    local members = {}   -- [name] = { key, left, source } for your own blessing on each member
 
     for _, m in ipairs(self.roster) do
         if UnitIsConnected(m.unit) and not UnitIsDeadOrGhost(m.unit) then
             local buffs = self:ScanUnit(m.unit)
             local role = self:UnitRole(m.unit)
             if buffs then
+                if self.isPaladin then
+                    local key, source = self:MyBlessingFor(m, role)
+                    members[m.name] = { key = key, left = key and buffs[key], source = source }
+                end
                 for _, pal in ipairs(self.paladins) do
-                    local key = self:Effective(pal, m.class, role)
+                    local key
+                    if pal == self.me then
+                        key = self:MyBlessingFor(m, role)
+                    else
+                        key = self:Effective(pal, m.class, role)
+                    end
                     if key then
                         cells[pal] = cells[pal] or {}
                         local c = cells[pal][m.class]
@@ -565,6 +596,7 @@ function BM:Evaluate()
 
     table.sort(mine, function(x, y) return x.left < y.left end)
     self.cells, self.mine, self.missingTotal = cells, mine, missingTotal
+    self.members = members
 
     self:MaybeAlert()
     if self.UI then
@@ -676,6 +708,7 @@ function BM:PLAYER_LOGIN()
     self.isPaladin = select(2, UnitClass("player")) == "PALADIN"
     self.roster, self.paladins, self.unitByName = {}, {}, {}
     self.outbox, self.hasAddon, self.mine, self.cells = {}, {}, {}, {}
+    self.members = {}
     self.missingTotal = 0
 
     self:LocalizeNames()
